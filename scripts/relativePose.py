@@ -123,8 +123,8 @@ class RelativePoseEstimation():
         Fx[0:3, 6:9] = R * self.delta_t
 
         Fx[3:6, 3:6] = -self.right_jacobian(r)@ R @ self.vectorToSkewSymmetric(Wb*self.delta_t)
-        # Fx[3:6, 9:12] = (R.T @ self.vectorToSkewSymmetric(Wb * self.delta_t).T @ self.exp_map(r) + R @ self.right_jacobian(r)) * R * self.delta_t
         Fx[3:6, 9:12] = self.right_jacobian(r) * R * self.delta_t
+        # Fx[3:6, 9:12] = (R.T @ self.vectorToSkewSymmetric(Wb * self.delta_t).T @ self.exp_map(r) + R @ self.right_jacobian(r)) * R * self.delta_t
 
         self.mJacobianMatF = Fx
 
