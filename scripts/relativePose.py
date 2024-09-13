@@ -121,8 +121,9 @@ class RelativePoseEstimation():
         Fx[0:3, 0:3] = np.eye(3) + self.vectorToSkewSymmetric(self.angularVelocity)*self.delta_t
         Fx[0:3, 3:6] = -np.dot(R, self.vectorToSkewSymmetric(Vb*self.delta_t))
         Fx[0:3, 6:9] = R * self.delta_t
-
-        Fx[3:6, 3:6] = -self.right_jacobian(r)@ R @ self.vectorToSkewSymmetric(Wb*self.delta_t)
+        
+        Fx[3:6, 3:6] = self.exp_map(r).T
+        # Fx[3:6, 3:6] = -self.right_jacobian(r)@ R @ self.vectorToSkewSymmetric(Wb*self.delta_t)
         Fx[3:6, 9:12] = self.right_jacobian(r) * R * self.delta_t
         # Fx[3:6, 9:12] = (R.T @ self.vectorToSkewSymmetric(Wb * self.delta_t).T @ self.exp_map(r) + R @ self.right_jacobian(r)) * R * self.delta_t
 
