@@ -101,7 +101,7 @@ class RelativePoseEstimation():
             [-axis[1], axis[0], 0]
         ])
 
-        return np.eye(3) + np.eye(3) - (1 - np.cos(angle)) / (angle**2) * skew_axis + (angle - np.sin(angle)) / (angle**3) * (skew_axis @ skew_axis)
+        return np.eye(3) - (1 - np.cos(angle)) / (angle**2) * skew_axis + (angle - np.sin(angle)) / (angle**3) * (skew_axis @ skew_axis)
     
     def vectorToSkewSymmetric(self, vec):
         return np.array([[0, -vec[2], vec[1]],
