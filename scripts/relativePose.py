@@ -127,27 +127,6 @@ class RelativePoseEstimation():
         Fx[3:6, 9:12] = self.right_jacobian(r) * R * self.delta_t
 
         self.mJacobianMatF = Fx
-        #
-
-    # def motionModelJacobian(self):
-    #     R, Vb, Wb = self.state["aRb"], self.state["Vb"], self.state["Wb"]
-    #     r = (R @ Wb - self.angularVelocity) * self.delta_t
-
-    #     Fx = np.eye(12)
-    #     Fx[0:3, 0:3] = np.eye(3) + self.vectorToSkewSymmetric(self.angularVelocity).T * self.delta_t
-    #     Fx[0:3, 3:6] = -np.dot(R, self.vectorToSkewSymmetric(Vb * self.delta_t))
-    #     Fx[0:3, 6:9] = R * self.delta_t
-
-    #     mag_Wb = np.linalg.norm(Wb)
-    #     if mag_Wb > 1e-9:
-    #         skew_Wb = self.vectorToSkewSymmetric(Wb)
-    #         Fx[3:6, 3:6] = self.exp_map(r).T - R @ self.right_jacobian(r) @ R @ skew_Wb
-    #         Fx[3:6, 9:12] = (-R.T @ skew_Wb @ self.delta_t @ self.exp_map(r) + R @ self.right_jacobian(r)) * R * self.delta_t
-    #     else:
-    #         Fx[3:6, 3:6] = np.eye(3)
-    #         Fx[3:6, 9:12] = np.zeros((3, 3))
-
-    #     self.mJacobianMatF = Fx
 
     def prediction(self):
         self.motionModelJacobian()
