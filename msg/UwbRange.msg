@@ -1,2 +1,2 @@
 Header  header    
-float32[16] ranges
+float32[8] ranges

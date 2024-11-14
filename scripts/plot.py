@@ -1,49 +1,61 @@
 import rospy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose2D
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from gazebo_msgs.msg import ModelStates
 import numpy as np
 
 class PlotTrajectory():
     def __init__(self):
-        rospy.Subscriber("/relative_pose", PoseStamped, self.relative_pose_callback)
-        rospy.Subscriber("/uav1/mavros/local_position/pose", PoseStamped, self.local_pose_callback)
-
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection='3d')
-
         self.relative_trajectory = []
         self.local_trajectory = []
+        self.rel_counter = 0
+        self.loc_counter = 0
+
+        self.new_rel_data = False
+        self.new_loc_data = False
+
+        rospy.Subscriber("/estimated_state", Pose2D, self.relative_pose_callback)
+        rospy.Subscriber("/gazebo/model_states", ModelStates, self.local_pose_callback)
+
+        self.fig, self.ax = plt.subplots()
+        plt.ion() 
+        plt.show()
 
     def relative_pose_callback(self, msg):
-        pos = (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
-        self.relative_trajectory.append(pos)
-        self.update_plot()
+        self.rel_counter += 1
+        if self.rel_counter % 3 == 0:
+            pos = (msg.x, msg.y)
+            self.relative_trajectory.append(pos)
+            self.new_rel_data = True  
 
     def local_pose_callback(self, msg):
-        pos = (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
-        self.local_trajectory.append(pos)
-        self.update_plot()
+        self.loc_counter += 1
+        if self.loc_counter % 3 == 0:
+            index = msg.name.index('jackal')
+            pose = msg.pose[index]
+            pos = (pose.position.x, pose.position.y)
+            self.local_trajectory.append(pos)
+            self.new_loc_data = True  
 
     def update_plot(self):
-        self.ax.clear()
-
-        if len(self.relative_trajectory) > 0:
-            rel_traj = np.array(self.relative_trajectory)
-            if rel_traj.size > 0:
-                self.ax.plot(rel_traj[:, 0], rel_traj[:, 1], rel_traj[:, 2], 'r', label='Relative Pose')
-
-        if len(self.local_trajectory) > 0:
-            loc_traj = np.array(self.local_trajectory)
-            if loc_traj.size > 0:
-                self.ax.plot(loc_traj[:, 0], loc_traj[:, 1], loc_traj[:, 2], 'b', label='Drone 2 Position in {W}')
-
-        self.ax.legend()
-        plt.draw()  # 화면을 다시 그리기 위해 사용
-        plt.pause(0.001)  # 잠시 대기하면서 화면 업데이트
+        if self.new_rel_data or self.new_loc_data:
+            self.ax.clear()
+            if self.relative_trajectory:
+                rel_traj = np.array(self.relative_trajectory)
+                self.ax.scatter(rel_traj[:, 0], rel_traj[:, 1], c='r', label='Estimated')
+            if self.local_trajectory:
+                loc_traj = np.array(self.local_trajectory)
+                self.ax.scatter(loc_traj[:, 0], loc_traj[:, 1], c='b', label='Ground Truth')
+            self.ax.legend()
+            plt.draw()
+            plt.pause(0.001)
+            self.new_rel_data = False
+            self.new_loc_data = False
 
 if __name__ == "__main__":
     rospy.init_node("PlotTrajectory")
     plotter = PlotTrajectory()
-    plt.show(block=True)
-    rospy.spin()
+    rate = rospy.Rate(10)
+    while not rospy.is_shutdown():
+        plotter.update_plot()
+        rate.sleep()
