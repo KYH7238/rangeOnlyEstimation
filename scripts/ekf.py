@@ -41,6 +41,21 @@ class EKFNode:
         v_j = x[3, 0]
         omega_j = x[4, 0]
         
+        # x_pred = np.zeros((5, 1))
+        # x_pred[0, 0] = x[0, 0] + v_j * dt * np.cos(yaw)
+        # x_pred[1, 0] = x[1, 0] + v_j * dt * np.sin(yaw)
+        # x_pred[2, 0] = x[2, 0] + omega_j * dt
+        # x_pred[3, 0] = x[3, 0]
+        # x_pred[4, 0] = x[4, 0]
+
+        # F = np.array([
+        #     [1, 0, -v_j * dt * np.sin(yaw), dt * np.cos(yaw), 0],
+        #     [0, 1,  v_j * dt * np.cos(yaw), dt * np.sin(yaw), 0],
+        #     [0, 0, 1, 0, dt],
+        #     [0, 0, 0, 1, 0],
+        #     [0, 0, 0, 0, 1]
+        # ])
+        
         x_pred = np.zeros((5, 1))
         x_pred[0, 0] = x[0, 0] + v_j * dt * np.cos(yaw)
         x_pred[1, 0] = x[1, 0] + v_j * dt * np.sin(yaw)
@@ -55,7 +70,6 @@ class EKFNode:
             [0, 0, 0, 1, 0],
             [0, 0, 0, 0, 1]
         ])
-        
         P_pred = F.dot(self.P).dot(F.T) + self.Q
         
         self.x = x_pred
@@ -82,6 +96,8 @@ class EKFNode:
                 p_j_in_drone = R.dot(p_j) + np.array([x[0, 0], x[1, 0], 0])
                 diff = p_i - p_j_in_drone
                 h[idx, 0] = np.linalg.norm(diff)
+                
+                
                 dist = h[idx, 0]
                 if dist == 0:
                     dist = 1e-4  

@@ -21,7 +21,7 @@ public:
     STATE getState();
 
 private:
-    Eigen::MatrixXd covP, covQ, covR, jacobianF, jacobianH;
+    Eigen::MatrixXd covP, covQ, covR, jacobianF, jacobianH, uavUwbPositions, ugvUwbPositions ;
     Eigen::Vector<doubel, 8> vecZ, vecH;
     double dt, TOL;
     STATE state;

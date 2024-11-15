@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-RPE::RPE(){
+RelativePoseEstimation::RelativePoseEstimation(){
     covP = Matrix<double,5,5>::Identity()*0.01;
     covQ = Matrix<double,5,5>::Identity()*0.001;
     covR = Matrix<double,8,8>::Identity()*0.015;
@@ -19,6 +19,14 @@ RPE::RPE(){
     vecZ = Vector::setZero();
     vecH = Vector::setZero();
 
+    uavUwbPositions << 0.13, 0.13, 0,
+                       0.13, -0.13, 0,
+                       -0.13, 0.13, 0,
+                       -0.13, -0.13, 0;
+
+    ugvUwbPositions << 0.25, 0, 0,
+                       -0.25, 0, 0;
+
     dt = 0;
     TOL = 1e-9;
     state.Xji = 0;
@@ -29,27 +37,27 @@ RPE::RPE(){
 
 }
 
-RPE::~RPE(){}
+RelativePoseEstimation::~RelativePoseEstimation(){}
 
-void RPE::setState() {
+void RelativePoseEstimation::setState() {
     
 }
 
-STATE RPE::getState() {
+STATE RelativePoseEstimation::getState() {
 
 }
 
-void RPE::setDt(const double deltaT) {
+void RelativePoseEstimation::setDt(const double deltaT) {
     dt = deltaT;
 }
 
-void RPE::setZ(const UwbData &uwbData) {
-    for (i = 0; i < vecZ.rows(); i++){
+void RelativePoseEstimation::setZ(const UwbData &uwbData) {
+    for (i = 0; i < vecZ.rows(); i++) {
         vecZ(i) = uwbData.ranges(i);
     }
 }
 
-void RPE::motionModel() {
+void RelativePoseEstimation::motionModel() {
     state.x += state.Vj * dt * cos(state.Thetaji);
     state.y += state.Vj * dt * sin(state.Thetaji);
     state.Thetaji += state.Wj * dt;
@@ -57,7 +65,7 @@ void RPE::motionModel() {
     state.Wji = state.Wji; 
 }
 
-void RPE::motionModelJacobian() {
+void RelativePoseEstimation::motionModelJacobian() {
     jacobianF(0,2) = -state.Vj*dt*sin(state.Thetaji);
     jacobianF(0,3) = dt*cos(state.Thetaji);    
     jacobianF(1,2) = state.Vj*dt*cos(state.Thetaji);
@@ -65,23 +73,23 @@ void RPE::motionModelJacobian() {
     jacobianF(2,4) = dt;    
 }
 
-void RPE::prediction() {
+void RelativePoseEstimation::prediction() {
     motionModel();
     motionModelJacobian();
     covP = jacobianF*covP*jacobianF.transpose() + covQ;
 }
 
-void RPE::measurementModel() {
-    for (i = 0; i < ){
-        
+void RelativePoseEstimation::measurementModel() {
+    for (i = 0; i < ) {
+
     }
 }
 
-void RPE::measurementModelJacobian() {
+void RelativePoseEstimation::measurementModelJacobian() {
     
 }
 
-STATE RPE::correction() {
+STATE RelativePoseEstimation::correction() {
     measurementModel();
     measurementModelJacobian();
 }
