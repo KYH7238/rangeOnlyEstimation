@@ -28,8 +28,16 @@ generate_messages(
 )
 
 catkin_package(
-   CATKIN_DEPENDS mavros_msgs roscpp rospy std_msgs message_runtime
+   CATKIN_DEPENDS mavros_msgs roscpp rospy std_msgs message_runtime geometry_msgs
 )
+
+add_executable(relEkfNode src/ekfNode.cpp)
+target_link_libraries(relEkfNode ${catkin_LIBRARIES})
+add_dependencies(relEkfNode
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
 catkin_install_python(PROGRAMS scripts/moving.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

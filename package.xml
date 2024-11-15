@@ -37,6 +37,5 @@
   <exec_depend>message_runtime</exec_depend> <!-- message_runtime 추가 -->
 
   <export>
-    <!-- 기타 의존성 -->
   </export>
 </package>
