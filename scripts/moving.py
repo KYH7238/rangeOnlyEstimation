@@ -139,11 +139,9 @@ class SingleDroneController:
 
         rospy.init_node('single_drone_trajectory', anonymous=True)
 
-        # Subscribers
         rospy.Subscriber("/mavros/state", State, self.state_cb)
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.pose_cb)
 
-        # Wait for the drone to connect
         while not self.drone_state.connected:
             rospy.loginfo("Waiting for the drone to connect...")
             rospy.sleep(1)

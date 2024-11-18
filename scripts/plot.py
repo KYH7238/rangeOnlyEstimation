@@ -12,16 +12,21 @@ class PlotTrajectory():
         self.local_trajectory = []
         self.rel_counter = 0
         self.loc_counter = 0
-
+        self.for_gt_x, self.for_gt_y = 0, 0
         rospy.Subscriber("/estimated_state", PoseStamped, self.relative_pose_callback)
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.local_pose_callback)
-
+        rospy.Subscriber("/mavros/local_position/pose",PoseStamped, self.pose_cb)
         self.fig, self.ax = plt.subplots()
+
+    def pose_cb(self, msg):
+        self.for_gt_x = msg.pose.position.x
+        self.for_gt_y = msg.pose.position.y
 
     def relative_pose_callback(self, msg):
         self.rel_counter += 1
         if self.rel_counter % 3 == 0:
-            pos = (msg.pose.position.x, msg.pose.position.y)
+            
+            pos = (self.for_gt_x + msg.pose.position.x, self.for_gt_y + msg.pose.position.y)
             self.relative_trajectory.append(pos)
 
     def local_pose_callback(self, msg):
