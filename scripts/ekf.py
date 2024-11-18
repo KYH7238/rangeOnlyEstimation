@@ -125,6 +125,7 @@ class EKFNode:
         if dt > 0:
             self.dt = dt
         self.prev_time = current_time
+        print(dt)
         self.predict()
         self.update(z)
         estimated_pose = Pose2D()

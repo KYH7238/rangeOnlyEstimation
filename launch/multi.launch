@@ -84,8 +84,10 @@
 </include>
       <node name="uwb_node" pkg="relative" type="ugvuavuwb.py" output="screen" launch-prefix="python3">
       </node>
-      <node name="ekf_node" pkg="relative" type="ekf.py" output="screen" launch-prefix="python3">
-      </node>
+      <!-- <node name="ekf_node" pkg="relative" type="ekf.py" output="screen" launch-prefix="python3">
+      </node> -->
+      <node name="relative_ekf" pkg="relative" type="relEkfNode" output="screen"/>
+
       <!-- <node name="moving_node" pkg="relative" type="moving.py" output="screen" launch-prefix="python3">
       </node> -->
       <node name="plot_node" pkg="relative" type="plot.py" output="screen" launch-prefix="python3">

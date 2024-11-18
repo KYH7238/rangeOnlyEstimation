@@ -33,6 +33,7 @@ catkin_package(
 
 add_executable(relEkfNode src/ekfNode.cpp)
 target_link_libraries(relEkfNode ${catkin_LIBRARIES})
+
 add_dependencies(relEkfNode
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}

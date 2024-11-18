@@ -1,6 +1,6 @@
 
 import rospy
-from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import PoseStamped
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from gazebo_msgs.msg import ModelStates
@@ -8,23 +8,20 @@ import numpy as np
 
 class PlotTrajectory():
     def __init__(self):
-        # Initialize attributes
         self.relative_trajectory = []
         self.local_trajectory = []
         self.rel_counter = 0
         self.loc_counter = 0
 
-        # Subscribers
-        rospy.Subscriber("/estimated_state", Pose2D, self.relative_pose_callback)
+        rospy.Subscriber("/estimated_state", PoseStamped, self.relative_pose_callback)
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.local_pose_callback)
 
-        # Set up the plot
         self.fig, self.ax = plt.subplots()
 
     def relative_pose_callback(self, msg):
         self.rel_counter += 1
         if self.rel_counter % 3 == 0:
-            pos = (msg.x, msg.y)
+            pos = (msg.pose.position.x, msg.pose.position.y)
             self.relative_trajectory.append(pos)
 
     def local_pose_callback(self, msg):

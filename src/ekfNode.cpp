@@ -20,7 +20,9 @@ private:
     Eigen::Matrix<double, 5, 5> covP;
     Eigen::Matrix<double, 5, 5> covQ;
     Eigen::Matrix<double, 8, 8> covR;
-
+    ros::Publisher pub_;
+    ros::NodeHandle nh_;
+    
     Eigen::Matrix<double, 5, 5> jacobianF;
     Eigen::Matrix<double, 8, 5> jacobianH;
 
@@ -35,6 +37,7 @@ private:
 
 public:
     RelativePoseEstimation() {
+        pub_ = nh_.advertise<geometry_msgs::PoseStamped>("estimated_state", 1);
         covP = Eigen::Matrix<double, 5, 5>::Identity() * 0.01;
         covQ = Eigen::Matrix<double, 5, 5>::Identity() * 0.001;
         covR = Eigen::Matrix<double, 8, 8>::Identity() * 0.015;
@@ -69,7 +72,6 @@ public:
 
     void resultPub() {
         double theta = state.thetaJi;
-
         Eigen::Matrix3d R;
         R << cos(theta), -sin(theta), 0,
              sin(theta),  cos(theta), 0,
@@ -88,8 +90,7 @@ public:
         pose.pose.orientation.y = quaternion.y();
         pose.pose.orientation.z = quaternion.z();
         pose.pose.orientation.w = quaternion.w();
-
-        // pub 추가해야댐
+        pub_.publish(pose);
     }
 
     void motionModel() {
@@ -176,7 +177,6 @@ public:
 class EKFNode {
 private:
     ros::NodeHandle nh_;
-    ros::Publisher pub_;
     ros::Subscriber sub_;
     RelativePoseEstimation ekf_;
     ros::Time prevTime_;
@@ -184,7 +184,6 @@ private:
 public:
     EKFNode() {
         sub_ = nh_.subscribe("ranges", 1, &EKFNode::uwbCallback, this);
-        pub_ = nh_.advertise<geometry_msgs::PoseStamped>("estimated_pose", 1);
         prevTime_ = ros::Time::now();
     }
 
