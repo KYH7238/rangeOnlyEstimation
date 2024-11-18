@@ -26,7 +26,7 @@ class PlotTrajectory():
         self.rel_counter += 1
         if self.rel_counter % 3 == 0:
             
-            pos = (self.for_gt_x + msg.pose.position.x, self.for_gt_y + msg.pose.position.y)
+            pos = ( msg.pose.position.x, msg.pose.position.y)
             self.relative_trajectory.append(pos)
 
     def local_pose_callback(self, msg):
@@ -34,7 +34,7 @@ class PlotTrajectory():
         if self.loc_counter % 3 == 0:
             index = msg.name.index('jackal')
             pose = msg.pose[index]
-            pos = (pose.position.x, pose.position.y)
+            pos = (self.for_gt_x - pose.position.x, self.for_gt_y - pose.position.y)
             self.local_trajectory.append(pos)
 
     def animate(self, frame):
