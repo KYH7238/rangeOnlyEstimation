@@ -188,7 +188,7 @@ public:
     }
 
     void uwbCallback(const relative::UwbRange::ConstPtr& msg) {
-        ros::Time currTime = msg->header.stamp;
+        ros::Time currTime = ros::Time::now();
         ros::Duration duration = currTime - prevTime_;
         double dt = duration.toSec();
         if (dt > 0) {
