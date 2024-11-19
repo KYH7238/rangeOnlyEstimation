@@ -13,9 +13,9 @@ class PlotTrajectory():
         self.rel_counter = 0
         self.loc_counter = 0
         self.drone_x, self.drone_y = 0, 0
+        rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.pose_cb)
         rospy.Subscriber("/estimated_state", PoseStamped, self.relative_pose_callback)
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.local_pose_callback)
-        rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.pose_cb)
         self.fig, self.ax = plt.subplots()
         self.wRi = np.eye(3)
 
