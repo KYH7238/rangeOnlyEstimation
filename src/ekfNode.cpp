@@ -33,7 +33,7 @@ private:
 
     Eigen::Vector3d vI, wI;
 
-    double dt, tol;
+    double dt, tol, droneZ;
 
     State state;
 
@@ -62,6 +62,11 @@ public:
         tol = 1e-9;
         vI = Eigen::Vector3d::Zero();
         wI = Eigen::Vector3d::Zero();
+        droneZ = 0;
+    }
+    
+    void setHeight(const double &z_) {
+        droneZ = z_;
     }
     
     void setViWi(const Eigen::VectorXd &vi, const Eigen::VectorXd &wi) {
@@ -70,7 +75,10 @@ public:
     }
 
     void setZ(const Eigen::VectorXd& z) {
-        vecZ = z;
+        for (int i = 0; i<z.size(); i++) {
+            vecZ(i) = sqrt(pow(z(i),2) - pow((droneZ-0.11),2));
+
+        } 
         vecH = Eigen::VectorXd::Zero(z.size());
         jacobianH = Eigen::MatrixXd::Zero(z.size(), 5);
     }
@@ -128,19 +136,17 @@ public:
         int idx = 0;
         Eigen::Vector3d relPose(state.xJi, state.yJi, 0);
         Eigen::Matrix3d R;
-        R << cos(theta), -sin(theta), 0,
+        R <<cos(theta), -sin(theta), 0,
             sin(theta),  cos(theta), 0,
-                0,           0,     1;
+              0,          0,         1;
                 
         for (int i = 0; i < uavUwbPositions.rows(); i++) {
             Eigen::Vector3d pi = uavUwbPositions.row(i).transpose();
-
             for (int j = 0; j < ugvUwbPositions.rows(); j++) {
                 if (idx >= vecH.size()) {
                     ROS_ERROR("Index idx (%d) exceeds vecH size (%ld)", idx, vecH.size());
                     return;
                 }
-
                 Eigen::Vector3d pj = ugvUwbPositions.row(j).transpose();
                 Eigen::Vector3d pjInUav = R * pj + relPose;
                 vecH(idx) = (pi - pjInUav).norm();
@@ -199,11 +205,12 @@ private:
     
     Eigen::VectorXd vi;
     Eigen::VectorXd wi;
+    double droneZ;
 
 public:
     EKFNode() {
         sub_ = nh_.subscribe("ranges", 1, &EKFNode::uwbCallback, this);
-        sub = nh_.subscribe("mavros/local_position/odom",1, &EKFNode::localOodmCallback, this);
+        sub = nh_.subscribe("mavros/local_position/odom",1, &EKFNode::localOdomCallback, this);
         prevTime_ = ros::Time::now();
     }
 
@@ -228,9 +235,11 @@ public:
         }
     }
 
-    void localOodmCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+    void localOdomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+        droneZ = msg->pose.pose.position.z;
         vi = Eigen::Vector3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z);
         wi = Eigen::Vector3d(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z);
+        ekf_.setHeight(droneZ);
         ekf_.setViWi(vi, wi);
     }
 };

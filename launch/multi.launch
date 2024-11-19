@@ -86,8 +86,8 @@
       </node>
       <node name="relative_ekf" pkg="relative" type="relEkfNode" output="screen">
       </node>
-      <!-- <node name="moving_node" pkg="relative" type="moving.py" output="screen" launch-prefix="python3">
-      </node> -->
-      <node name="plot_node" pkg="relative" type="plot.py" output="screen" launch-prefix="python3">
+      <node name="moving_node" pkg="relative" type="moving.py" output="screen" launch-prefix="python3">
       </node>
+      <!-- <node name="plot_node" pkg="relative" type="plot.py" output="screen" launch-prefix="python3">
+      </node> -->
 </launch>

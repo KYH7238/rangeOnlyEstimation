@@ -49,7 +49,7 @@ class PlotTrajectory():
             pos = (pose.position.x, pose.position.y)
             self.local_trajectory.append(pos)
 
-    def create_rotated_triangle(self, x, y, yaw, size=0.1):
+    def create_rotated_triangle(self, x, y, yaw, size=0.095):
         triangle = np.array([
             [0, size*1.3],
             [-size/2, -size/2],
