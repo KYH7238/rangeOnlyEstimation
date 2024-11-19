@@ -1,222 +1,72 @@
 import rospy
-import tf
-from geometry_msgs.msg import PoseStamped, TwistStamped
-from sensor_msgs.msg import Imu
+from geometry_msgs.msg import PoseStamped
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from gazebo_msgs.msg import ModelStates
 import numpy as np
-from relative.msg import UwbRange
+import message_filters
+import tf
 
-class RelativePoseEstimation():
+class PlotTrajectory():
     def __init__(self):
-        self.state = {
-            "aPb": np.zeros(3),       
-            "aRb": np.eye(3),        
-            "Vb": np.zeros(3),        
-            "Wb": np.zeros(3)         
-        }
-        self.matP = np.eye(12) * 0.1  
-        self.matQ = 0.001 * np.eye(12)  
-        self.matR = 0.01 * np.eye(16)   
-        self.mvecH = np.zeros(16)      
-        self.mvecZ = np.zeros(16)      
-        self.wRa = np.eye(3)          
-        self.aVw = np.zeros(3)         
-        self.aWw = np.zeros(3)          
-        self.aVa = np.zeros(3)  
-        rospy.Subscriber("/ranges", UwbRange, self.uwbCallback)
-        rospy.Subscriber("/uav0/mavros/local_position/pose", PoseStamped, self.egoPoseCallback)
-        rospy.Subscriber("/uav0/mavros/local_position/velocity_body", TwistStamped, self.velocityCallback)
-        rospy.Subscriber("/uav0/mavros/imu/data", Imu, self.imuCallback)
+        rospy.init_node("plot_node")
+        self.relative_trajectory = []
+        self.local_trajectory = []
 
-        self.pose_pub = rospy.Publisher("/relative_pose", PoseStamped, queue_size=10)
+        # Subscribers with message_filters
+        self.est_sub = message_filters.Subscriber("/estimated_state", PoseStamped)
+        self.gt_sub = message_filters.Subscriber("/gazebo/model_states", ModelStates)
+        self.uav_sub = message_filters.Subscriber("/mavros/local_position/pose", PoseStamped)
 
-        self.egoPosition = np.zeros(3)
-        self.egoOrientation = np.array([0, 0, 0, 1])  #(x, y, z, w)
-        self.linearVelocity = np.zeros(3)
-        self.angularVelocity = np.zeros(3)
-        self.delta_t = 0.01
-        self.before_t = rospy.Time.now()
+        # Time Synchronizer
+        ts = message_filters.ApproximateTimeSynchronizer([self.est_sub, self.gt_sub, self.uav_sub], 10, 0.1)
+        ts.registerCallback(self.synchronized_callback)
 
-        self.uwb_positions_drone1 = np.array([
-            [0.5, 0.5, 0],    
-            [0.5, -0.5, 0],   
-            [-0.5, 0.5, 0],   
-            [-0.5, -0.5, 0]
-        ]).T  
+        self.fig, self.ax = plt.subplots()
 
-        self.uwb_positions_drone2 = self.uwb_positions_drone1.copy()
+    def synchronized_callback(self, est_msg, gt_msg, uav_msg):
+        # UAV 위치
+        uav_x = uav_msg.pose.position.x
+        uav_y = uav_msg.pose.position.y
 
-    def uwbCallback(self, msg):
-        self.mvecZ = msg.ranges 
-        self.process_data()
+        # UGV 위치 (Ground Truth)
+        try:
+            index = gt_msg.name.index('jackal')
+        except ValueError:
+            rospy.logwarn("Jackal model not found in ModelStates")
+            return
+        ugv_pose = gt_msg.pose[index]
+        ugv_x = ugv_pose.position.x
+        ugv_y = ugv_pose.position.y
 
+        # 상대 위치 계산 (Ground Truth)
+        rel_x = ugv_x - uav_x
+        rel_y = ugv_y - uav_y
+        self.local_trajectory.append((rel_x, rel_y))
 
-    def egoPoseCallback(self, msg):
-        self.egoPosition = np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
-        self.egoOrientation = np.array([
-            msg.pose.orientation.x,
-            msg.pose.orientation.y,
-            msg.pose.orientation.z,
-            msg.pose.orientation.w
-        ])
-        self.wRa = tf.transformations.quaternion_matrix(self.egoOrientation)[:3, :3]  
+        # 추정된 상대 위치
+        est_rel_x = est_msg.pose.position.x
+        est_rel_y = est_msg.pose.position.y
+        self.relative_trajectory.append((est_rel_x, est_rel_y))
 
-    def velocityCallback(self, msg):
-        self.aVa = np.array([msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z])
+    def animate(self, frame):
+        self.ax.clear()
+        if self.relative_trajectory:
+            rel_traj = np.array(self.relative_trajectory)
+            self.ax.plot(rel_traj[:, 0], rel_traj[:, 1], c='r', label='Estimated')
+        if self.local_trajectory:
+            loc_traj = np.array(self.local_trajectory)
+            self.ax.plot(loc_traj[:, 0], loc_traj[:, 1], c='b', label='Ground Truth')
+        self.ax.legend()
+        self.ax.set_xlabel('X Position')
+        self.ax.set_ylabel('Y Position')
+        self.ax.set_title('Relative Trajectory')
+        self.ax.grid(True)
 
-    def imuCallback(self, msg):
-        self.angularVelocity = np.array([msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z])
-
-    def process_data(self):
-        current_time = rospy.Time.now()
-        self.delta_t = (current_time - self.before_t).to_sec()
-        if self.delta_t <= 0:
-            self.delta_t = 0.01 
-        self.before_t = current_time
-
-        self.prediction()
-        self.correction()
-        self.publish_pose()
-
-    def exp_map(self, omega):
-        angle = np.linalg.norm(omega)
-        if angle < 1e-9:
-            return np.eye(3)
-        axis = omega / angle
-        K = self.vectorToSkewSymmetric(axis)
-        return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * (K @ K)
-
-    def vectorToSkewSymmetric(self, vec):
-        return np.array([[0, -vec[2], vec[1]],
-                         [vec[2], 0, -vec[0]],
-                         [-vec[1], vec[0], 0]])
-
-    def motionModel(self):
-        R = self.state["aRb"]          
-        Vb = self.state["Vb"]            
-        Wb = self.state["Wb"]           
-        delta_t = self.delta_t
-
-        aVb = R @ Vb                     
-        aWb = R @ Wb                     
-
-        aWa = self.angularVelocity      
-
-        # aVa = self.wRa.T @ self.aVw      
-
-        aPb_dot = self.vectorToSkewSymmetric(aWa) @ self.state["aPb"] - self.aVa + aVb
-        self.state["aPb"] += aPb_dot * delta_t
-
-        omega = (aWb - aWa)
-        self.state["aRb"] = self.state["aRb"] @ self.exp_map(omega * delta_t)
-
-    def motionModelJacobian(self):
-        R = self.state["aRb"]
-        Vb = self.state["Vb"]
-        Wb = self.state["Wb"]
-        delta_t = self.delta_t
-
-        Fx = np.eye(12)
-
-        aVb = R @ Vb
-        aWb = R @ Wb
-
-        aWa = self.angularVelocity
-
-        # aVa = self.wRa.T @ self.aVw
-
-        Fx[0:3, 0:3] += self.vectorToSkewSymmetric(aWa) * delta_t
-        Fx[0:3, 3:6] += -R @ self.vectorToSkewSymmetric(Vb) * delta_t
-        Fx[0:3, 6:9] += R * delta_t
-
-        # Fx[3:6, 3:6] += -self.vectorToSkewSymmetric(aWa) * delta_t
-        Fx[3:6, 9:12] += R * delta_t
-
-        self.mJacobianMatF = Fx
-
-    def prediction(self):
-        self.motionModelJacobian()
-        self.motionModel()
-        self.matP = self.mJacobianMatF @ self.matP @ self.mJacobianMatF.T + self.matQ * self.delta_t
-
-    def measurementModel(self):
-        idx = 0
-        for i in range(4):
-            for j in range(4):
-                # aPi = self.state["aRb"] @ self.uwb_positions_drone1[:, i] + self.state["aPb"]
-                aPi = self.uwb_positions_drone1[:, i]
-                aPj = self.state["aPb"] + self.state["aRb"] @ self.uwb_positions_drone2[:, j]
-                diff = aPi - aPj
-                # print(aPj)
-                # print("diff:",diff)
-                # print("diff_norm:",np.linalg.norm(diff))
-                self.mvecH[idx] = np.linalg.norm(diff)
-                idx += 1
-        # print(self.mvecH)
-
-    def measurementModelJacobian(self):
-        H = np.zeros((16, 12))
-        idx = 0
-        for i in range(4):
-            for j in range(4):
-                # aPi = self.state["aRb"] @ self.uwb_positions_drone1[:, i] + self.state["aPb"]
-                aPi = self.uwb_positions_drone1[:, i]
-                aPj = self.state["aPb"] + self.state["aRb"] @ self.uwb_positions_drone2[:, j]
-                diff = aPi - aPj
-                dist = np.linalg.norm(diff)
-
-
-                H[idx, 0:3] = -diff / dist 
-                # print(H[idx, 0:3])
-                skew_i = self.vectorToSkewSymmetric(self.uwb_positions_drone1[:, i])
-                skew_j = self.vectorToSkewSymmetric(self.uwb_positions_drone2[:, j])
-                pj_b = self.uwb_positions_drone2[:, j]
-                H[idx, 3:6] = - ( (self.state["aRb"] @ self.vectorToSkewSymmetric(pj_b)) @ diff ) / dist
-
-                idx += 1
-
-        self.mJacobianMatH = H
-
-    def correction(self):
-        self.measurementModel()
-        self.measurementModelJacobian()
-        residual = self.mvecZ - self.mvecH
-        print(residual)
-        residualCov = self.mJacobianMatH @ self.matP @ self.mJacobianMatH.T + self.matR
-        Kk = self.matP @ self.mJacobianMatH.T @ np.linalg.inv(residualCov)
-        stateUpdate = Kk @ residual
-
-        self.state["aPb"] += stateUpdate[0:3]
-        # self.state["aPb"][2] = self.egoPosition[2]
-        delta_rot = self.exp_map(stateUpdate[3:6])
-        self.state["aRb"] = self.state["aRb"] @ delta_rot 
-        self.state["Vb"] += stateUpdate[6:9]
-        self.state["Wb"] += stateUpdate[9:12]
-
-        self.matP = (np.eye(12) - Kk @ self.mJacobianMatH) @ self.matP
-
-    def publish_pose(self):
-        relative_pose_msg = PoseStamped()
-        relative_pose_msg.header.stamp = rospy.Time.now()
-        relative_pose_msg.header.frame_id = "map"
-
-        # global_position = self.wRa @ self.state["aPb"] + self.egoPosition
-        global_position = self.wRa @ self.state["aPb"] 
-        relative_pose_msg.pose.position.x = global_position[0]
-        relative_pose_msg.pose.position.y = global_position[1]
-        relative_pose_msg.pose.position.z = global_position[2]
-
-        global_rotation_matrix = self.wRa @ self.state["aRb"]
-        quaternion = tf.transformations.quaternion_from_matrix(
-            np.vstack((np.hstack((global_rotation_matrix, np.array([[0], [0], [0]]))), np.array([0, 0, 0, 1])))
-        )
-        relative_pose_msg.pose.orientation.x = quaternion[0]
-        relative_pose_msg.pose.orientation.y = quaternion[1]
-        relative_pose_msg.pose.orientation.z = quaternion[2]
-        relative_pose_msg.pose.orientation.w = quaternion[3]
-
-        self.pose_pub.publish(relative_pose_msg)
+    def run(self):
+        ani = FuncAnimation(self.fig, self.animate, interval=100)
+        plt.show(block=True)
 
 if __name__ == "__main__":
-    rospy.init_node("RelativePoseEstimation")
-    rel_pose_estimator = RelativePoseEstimation()
-    rospy.spin()
+    plotter = PlotTrajectory()
+    plotter.run()

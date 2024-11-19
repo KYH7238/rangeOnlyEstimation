@@ -196,7 +196,6 @@ class SingleDroneController:
             rospy.logerr(f"Set mode service call failed: {e}")
 
     def manage_drone(self):
-        # Send a few initial setpoints to start offboard mode
         self.send_initial_setpoints()
         self.set_mode('OFFBOARD')
         self.arm_drone()
@@ -216,9 +215,8 @@ class SingleDroneController:
     def control_loop(self):
         rate = rospy.Rate(20)
         while not rospy.is_shutdown():
-            self.time_elapsed += 0.02  
+            self.time_elapsed += 0.005  
 
-            # Calculate 8-shaped trajectory
             x = 5 * math.sin(self.time_elapsed)
             y = 5 * math.sin(2 * self.time_elapsed)
             yaw = math.atan2(2 * math.cos(2 * self.time_elapsed), math.cos(self.time_elapsed)) 
