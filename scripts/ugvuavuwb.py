@@ -32,10 +32,10 @@ class uwb_node():
     def uwb_callback_drone(self, msg):
         pose = msg.pose
         uwb_positions = [
-            [0.17, 0.17, 0],
-            [0.17, -0.17, 0],
-            [-0.17, 0.17, 0],
-            [-0.17, -0.17, 0]
+            [0.13, 0.13, 0],
+            [0.13, -0.13, 0],
+            [-0.13, 0.13, 0],
+            [-0.13, -0.13, 0]
         ]
         for i, uwb_position in enumerate(uwb_positions):
             self.drone_uwb_position[:, i] = self.transform_uwb_position(pose, uwb_position)
