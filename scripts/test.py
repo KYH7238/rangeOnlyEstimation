@@ -55,7 +55,7 @@ class PlotTrajectory():
 
     def create_rotated_triangle(self, x, y, yaw, size=0.08):
         triangle = np.array([
-            [size*2.1, 0],
+            [size*2.5, 0],
             [0, -size],
             [0, size]
         ])
