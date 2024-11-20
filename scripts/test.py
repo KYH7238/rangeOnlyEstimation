@@ -55,7 +55,7 @@ class PlotTrajectory():
 
     def create_rotated_triangle(self, x, y, yaw, size=0.08):
         triangle = np.array([
-            [size*2, 0],
+            [size*2.1, 0],
             [0, -size],
             [0, size]
         ])
@@ -63,7 +63,6 @@ class PlotTrajectory():
             [np.cos(yaw), -np.sin(yaw)],
             [np.sin(yaw), np.cos(yaw)]
         ])
-        # triangle_rotated = triangle.dot(rot.T)
         triangle_rotated = np.dot(rot,triangle.T)
         triangle_rotated[0,:] += x
         triangle_rotated[1,:] += y
@@ -80,7 +79,7 @@ class PlotTrajectory():
                     self.ax.add_patch(triangle)
         if self.local_trajectory:
             loc_traj = np.array(self.local_trajectory)
-            self.ax.scatter(loc_traj[:, 0], loc_traj[:, 1], c='b', label='Ground Truth')
+            self.ax.scatter(loc_traj[:, 0], loc_traj[:, 1], c='k', label='Ground Truth')
         self.ax.legend()
 
 if __name__ == "__main__":
