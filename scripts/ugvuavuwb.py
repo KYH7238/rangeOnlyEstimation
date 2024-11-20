@@ -13,16 +13,14 @@ class uwb_node():
         self.pub_range = rospy.Publisher('/ranges', UwbRange, queue_size=10)
         self.ranges = np.zeros((4, 2))
         self.drone_uwb_position = np.zeros((3, 4))
-        self.jackal_uwb_position = np.zeros((3, 2))
-        self.noise_mean = 0
-        self.noise_std = 0.07
+        self.jackal_uwb_position = np.zeros((3, 2)) 
         self.jackal_pose = None
 
     def transform_uwb_position(self, pose, local_uwb_position):
         orientation = pose.orientation
         quaternion = [orientation.x, orientation.y, orientation.z, orientation.w]
         rotation_matrix = quaternion_matrix(quaternion)
-        local_uwb_position_homogeneous = np.array([local_uwb_position[0], local_uwb_position[1], local_uwb_position[2], 1])
+        local_uwb_position_homogeneous = np.array([*local_uwb_position, 1])
         world_uwb_position = np.dot(rotation_matrix, local_uwb_position_homogeneous)
         uwb_world_x = pose.position.x + world_uwb_position[0]
         uwb_world_y = pose.position.y + world_uwb_position[1]
@@ -63,9 +61,10 @@ class uwb_node():
             for j in range(2):
                 diff = self.drone_uwb_position[:, i] - self.jackal_uwb_position[:, j]
                 distance = np.linalg.norm(diff)
-                self.ranges[i, j] = distance
+                noisy_distance = distance + np.random.normal(0, 0.07)
+                self.ranges[i, j] = noisy_distance
         uwb_range_msg = UwbRange()
-        uwb_range_msg.ranges = self.ranges.flatten().tolist() # 나중에 잘되면 Gaussian noise 추가할 예정
+        uwb_range_msg.ranges = self.ranges.flatten().tolist()
         self.pub_range.publish(uwb_range_msg)
 
 if __name__ == '__main__':
