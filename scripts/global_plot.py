@@ -68,7 +68,7 @@ class PlotTrajectory():
         triangle_rotated[1,:] += y
         return Polygon(triangle_rotated.T, color='r', fill=False)
 
-    def animate(self, frame):
+    def animate(self, frame): 
         self.ax.clear()
         self.ax.set_title("Global Frame")
         if self.relative_trajectory:
