@@ -39,7 +39,6 @@ class PlotTrajectory():
             pos_vector = np.array([msg.pose.position.x, msg.pose.position.y, 0.11])
             pos_world = np.dot(self.wRi, pos_vector) + np.array([self.drone_x, self.drone_y, 0])
             yaw_angle = self.drone_yaw + msg.pose.position.z
-            # yaw_angle = msg.pose.position.z
             self.relative_trajectory.append((pos_world[0], pos_world[1], yaw_angle))
             self.cnt += 1
             if self.cnt >= 5:
