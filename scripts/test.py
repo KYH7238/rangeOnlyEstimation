@@ -53,21 +53,21 @@ class PlotTrajectory():
             pos = (pose.position.x, pose.position.y)
             self.local_trajectory.append(pos)
 
-    def create_rotated_triangle(self, x, y, yaw, size=0.095):
+    def create_rotated_triangle(self, x, y, yaw, size=0.08):
         triangle = np.array([
-            [0, size*1.3],
-            [-size/2, -size/2],
-            [size/2, -size/2]
+            [size*2, 0],
+            [0, -size],
+            [0, size]
         ])
         rot = np.array([
             [np.cos(yaw), -np.sin(yaw)],
             [np.sin(yaw), np.cos(yaw)]
         ])
-        triangle_rotated = triangle.dot(rot.T)
-        
-        triangle_rotated[:, 0] += x
-        triangle_rotated[:, 1] += y
-        return Polygon(triangle_rotated, color='r', fill=False)
+        # triangle_rotated = triangle.dot(rot.T)
+        triangle_rotated = np.dot(rot,triangle.T)
+        triangle_rotated[0,:] += x
+        triangle_rotated[1,:] += y
+        return Polygon(triangle_rotated.T, color='r', fill=False)
 
     def animate(self, frame):
         self.ax.clear()
