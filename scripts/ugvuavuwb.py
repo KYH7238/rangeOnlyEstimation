@@ -62,7 +62,8 @@ class uwb_node():
                 diff = self.drone_uwb_position[:, i] - self.jackal_uwb_position[:, j]
                 distance = np.linalg.norm(diff)
                 noisy_distance = distance + np.random.normal(0, 0.07)
-                self.ranges[i, j] = noisy_distance
+                self.ranges[i, j] = distance
+                # self.ranges[i, j] = noisy_distance
         uwb_range_msg = UwbRange()
         uwb_range_msg.ranges = self.ranges.flatten().tolist()
         self.pub_range.publish(uwb_range_msg)

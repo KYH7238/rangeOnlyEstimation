@@ -100,7 +100,7 @@ public:
 
         pose.pose.position.x = state.xJi;
         pose.pose.position.y = state.yJi;
-        pose.pose.position.z = 0;
+        pose.pose.position.z = theta;
 
         Eigen::Quaterniond quaternion(R);
         pose.pose.orientation.x = quaternion.x();
