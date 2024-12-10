@@ -33,7 +33,7 @@ def euler_to_rotation_matrix(roll, pitch, yaw):
         [np.sin(y), np.cos(y), 0],
         [0, 0, 1]
     ])
-
+    
     return R_yaw @ R_pitch @ R_roll
 
 def save_rotation_matrices_to_file(roll, pitch, yaw, output_file="rotation_matrix.txt"):
