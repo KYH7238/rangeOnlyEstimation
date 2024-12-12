@@ -17,6 +17,8 @@ class PlotTrajectory():
         self.cnt = 0
         self.drone_x = 0
         self.drone_y = 0
+        self.first_cnt_1 = 0 
+        self.first_cnt_2 = 0         
         rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.pose_cb)
         rospy.Subscriber("/estimated_state", PoseStamped, self.relative_pose_callback)
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.local_pose_callback)
@@ -32,23 +34,27 @@ class PlotTrajectory():
         self.drone_position = np.array([self.drone_x, self.drone_y, 0])
 
     def relative_pose_callback(self, msg):
-        self.rel_counter += 1
-        if self.rel_counter % 3 == 0:
-            self.relative_trajectory.append((msg.pose.position.x, msg.pose.position.y, msg.pose.position.z))
-            self.cnt += 1
-            if self.cnt >= 5:
-                self.triangles.append((msg.pose.position.x, msg.pose.position.y, msg.pose.position.z))
-                self.cnt = 0
+        self.first_cnt_1 +=1
+        if self.first_cnt_1 >=4000:
+            self.rel_counter += 1
+            if self.rel_counter % 3 == 0:
+                self.relative_trajectory.append((msg.pose.position.x, msg.pose.position.y, msg.pose.position.z))
+                self.cnt += 1
+                if self.cnt >= 5:
+                    self.triangles.append((msg.pose.position.x, msg.pose.position.y, msg.pose.position.z))
+                    self.cnt = 0
 
     def local_pose_callback(self, msg):
-        self.loc_counter += 1
-        if self.loc_counter % 3 == 0:
-            index = msg.name.index('jackal')
-            pose = msg.pose[index]
-            jackal_position = np.array([pose.position.x, pose.position.y, 0])
-            relative_position = jackal_position - self.drone_position
-            local_position = np.dot(self.iRw, relative_position)[:2]
-            self.local_trajectory.append(local_position)
+        self.first_cnt_2 +=1
+        if self.first_cnt_2 >=4000:
+            self.loc_counter += 1
+            if self.loc_counter % 3 == 0:
+                index = msg.name.index('jackal')
+                pose = msg.pose[index]
+                jackal_position = np.array([pose.position.x, pose.position.y, 0])
+                relative_position = jackal_position - self.drone_position
+                local_position = np.dot(self.iRw, relative_position)[:2]
+                self.local_trajectory.append(local_position)
 
     def create_rotated_triangle(self, x, y, yaw, size=0.08):
         triangle = np.array([

@@ -59,7 +59,7 @@
     </include>
 
     <!-- Jackal robot pose -->
-    <arg name="jackal_x" default="2.0"/>
+    <arg name="jackal_x" default="1.0"/>
     <arg name="jackal_y" default="0.0"/>
     <arg name="jackal_z" default="0.0"/>
     <arg name="jackal_yaw" default="0.0"/>
@@ -91,8 +91,8 @@
       <node name="moving_node" pkg="relative" type="moving.py" output="screen" launch-prefix="python3">
       </node>
 
-      <node name="global_plot_node" pkg="relative" type="global_plot.py" output="screen" launch-prefix="python3">
-      </node>
+      <!-- <node name="global_plot_node" pkg="relative" type="global_plot.py" output="screen" launch-prefix="python3">
+      </node> -->
 
       <node name="local_plot_node" pkg="relative" type="local_plot.py" output="screen" launch-prefix="python3">
       </node>
